@@ -338,7 +338,7 @@ bool ProbablePrimeChainTest(const CBigNum& bnPrimeChainOrigin, unsigned int nBit
 boost::thread_specific_ptr<CSieveOfEratosthenes> psieve;
 
 // Mine probable prime chain of form: n = h * p# +/- 1
-bool MineProbablePrimeChain(CBlock& block, CBigNum& bnFixedMultiplier, bool& fNewBlock, unsigned int& nTriedMultiplier, unsigned int& nProbableChainLength, unsigned int& nTests, unsigned int& nPrimesHit)
+bool MineProbablePrimeChain(CBlock& block, CBigNum& bnFixedMultiplier, bool& fNewBlock, unsigned int& nTriedMultiplier, unsigned int& nProbableChainLength, unsigned int& nTests, unsigned int& nPrimesHit, uint256& headerhash)
 {
     nProbableChainLength = 0;
     nTests = 0;
@@ -357,11 +357,11 @@ bool MineProbablePrimeChain(CBlock& block, CBigNum& bnFixedMultiplier, bool& fNe
     {
         // Build sieve
         nStart = GetTimeMicros();
-        psieve.reset(new CSieveOfEratosthenes(nMaxSieveSize, block.nBits, block.GetHeaderHash(), bnFixedMultiplier));
+        psieve.reset(new CSieveOfEratosthenes(nMaxSieveSize, block.nBits, headerhash, bnFixedMultiplier));
         int64 nSieveRoundLimit = (int)GetArg("-gensieveroundlimitms", 1000);
         while (psieve->Weave() && pindexPrev == pindexBest && (GetTimeMicros() - nStart < 1000 * nSieveRoundLimit));
-        if (fDebug && GetBoolArg("-printmining"))
-            printf("MineProbablePrimeChain() : new sieve (%u/%u@%u%%) ready in %uus\n", psieve->GetCandidateCount(), nMaxSieveSize, psieve->GetProgressPercentage(), (unsigned int) (GetTimeMicros() - nStart));
+        //if (fDebug && GetBoolArg("-printmining"))
+            //printf("MineProbablePrimeChain() : new sieve (%u/%u@%u%%) ready in %uus\n", psieve->GetCandidateCount(), nMaxSieveSize, psieve->GetProgressPercentage(), (unsigned int) (GetTimeMicros() - nStart));
     }
 
     CBigNum bnChainOrigin;
@@ -379,7 +379,7 @@ bool MineProbablePrimeChain(CBlock& block, CBigNum& bnFixedMultiplier, bool& fNe
             fNewBlock = true; // notify caller to change nonce
             return false;
         }
-        bnChainOrigin = CBigNum(block.GetHeaderHash()) * bnFixedMultiplier * nTriedMultiplier;
+        bnChainOrigin = CBigNum(headerhash) * bnFixedMultiplier * nTriedMultiplier;
         unsigned int nChainLengthCunningham1 = 0;
         unsigned int nChainLengthCunningham2 = 0;
         unsigned int nChainLengthBiTwin = 0;
